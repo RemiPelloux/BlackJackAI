@@ -1,4 +1,4 @@
-Blackjack Game with IA - WIP - Learning project
+Blackjack Game with RL - WIP - Learning project
 ======================
 
 This is an implementation of the game of blackjack with an IA player that uses reinforcement learning to make optimal decisions.
