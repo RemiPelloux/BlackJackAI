@@ -1,9 +1,16 @@
-# The BlackPlayer class is an implementation of a reinforcement learning algorithm known as Sarsa(λ). It is designed to be used in a blackjack game, where the IA (artificial intelligence) player will learn to make optimal decisions based on its experiences in the game. The class has several methods, including:
+# The BlackPlayer class is an implementation of a reinforcement learning algorithm known as Sarsa(λ). It is designed
+# to be used in a blackjack game, where the IA (artificial intelligence) player will learn to make optimal decisions
+# based on its experiences in the game. The class has several methods, including:
 #
-# init: This method initializes the class with the given states, actions, learning rate alpha, discount factor gamma, and exploration rate epsilon. It also creates a Q-table to store the IA's estimates of the expected return for each state-action pair, and sets up dictionaries to map states and actions to indices and vice versa.
-# choose_action: This method chooses the next action for the IA to take based on the Sarsa(λ) algorithm. With probability ε, it will choose a random action, and with probability 1 - ε, it will choose the action that maximizes the Q-value for the current state.
-# update_q_table: This method updates the Q-table using the Sarsa(λ) update rule, which is q_table[s, a] = q_table[s, a] + α * (r + γ * q_table[s', a'] - q_table[s, a]). It takes in the current state s, action a, reward r, next state s', and next action a' as input.
-# save_q_table: This method saves the Q-table to a file using np.save, so that the IA can continue learning from its experiences in future games.
+# init: This method initializes the class with the given states, actions, learning rate alpha, discount factor gamma,
+# and exploration rate epsilon. It also creates a Q-table to store the IA's estimates of the expected return for each
+# state-action pair, and sets up dictionaries to map states and actions to indices and vice versa. choose_action:
+# This method chooses the next action for the IA to take based on the Sarsa(λ) algorithm. With probability ε,
+# it will choose a random action, and with probability 1 - ε, it will choose the action that maximizes the Q-value
+# for the current state. update_q_table: This method updates the Q-table using the Sarsa(λ) update rule,
+# which is q_table[s, a] = q_table[s, a] + α * (r + γ * q_table[s', a'] - q_table[s, a]). It takes in the current
+# state s, action a, reward r, next state s', and next action a' as input. save_q_table: This method saves the
+# Q-table to a file using np.save, so that the IA can continue learning from its experiences in future games.
 
 import numpy as np
 import random
