@@ -1,7 +1,7 @@
 import json
 import random
 from collections import defaultdict
-
+from bayesian_optimization import BayesianOptimization
 # Import my ia
 import BlackPlayer
 
@@ -89,7 +89,7 @@ class BlackjackGame:
 		current_state = random.choice(states)  # Choose a random state
 		current_action = random.choice(self.actions)  # Choose a random action
 
-		self.player_ia = BlackPlayer.BlackPlayer(states=states, actions=self.actions, alpha=0.8, gamma=0.4, epsilon=0.1)
+		self.player_ia = BlackPlayer.BlackPlayer(states=states, actions=self.actions, alpha=0.5, gamma=0.8, epsilon=0.3)
 
 		self.deck = Deck()
 		self.deck.shuffle()
@@ -296,7 +296,7 @@ if __name__ == '__main__':
 	game = BlackjackGame()
 	game.load_balance()
 	# play 100 games
-	for i in range(10000):
+	for i in range(100):
 		if game.player.balance < 10:
 			print('You are out of money!')
 			break
