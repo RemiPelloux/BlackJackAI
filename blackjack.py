@@ -1,7 +1,7 @@
 import json
 import random
 from collections import defaultdict
-from bayesian_optimization import BayesianOptimization
+import BayesianOptimization
 # Import my ia
 import BlackPlayer
 
