@@ -108,7 +108,11 @@ class BlackjackGame:
 			self.save_balance(1000)
 
 	def get_state(self):
-		pass
+		"""Return the current state of the game, which includes the player's hand value, the dealer's hand value,
+		and the visible card of the dealer. """
+		player_value = self.player.value
+		dealer_value = self.dealer.hand[0].value
+		return player_value, dealer_value
 
 	def play(self):
 		self.bet = random.randint(10, 50)
