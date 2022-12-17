@@ -66,6 +66,10 @@ class BlackjackGame:
 		# Create a list of states as tuples of hand values and visible cards
 		states = [(hand_value, visible_card) for hand_value in hand_values for visible_card in visible_cards]
 
+		# Initialize the current state and action
+		current_state = random.choice(states)  # Choose a random state
+		current_action = random.choice(self.actions)  # Choose a random action
+
 		self.player_ia = BlackPlayer.BlackPlayer(states=states, actions=self.actions, alpha=0.1, gamma=0.9, epsilon=0.1)
 
 		self.deck = Deck()
@@ -123,6 +127,13 @@ class BlackjackGame:
 
 	def play(self):
 		self.bet = random.randint(10, 50)
+		print('______________________________________________________')
+		print()
+		print('Your balance is ${}'.format(self.player.balance))
+		print('Your bet is ${}'.format(self.bet))
+		print('______________________________________________________')
+		print('Dealing cards...')
+		print()
 
 		self.player.draw(self.deck.draw())
 		self.player.draw(self.deck.draw())
@@ -134,12 +145,13 @@ class BlackjackGame:
 		for card in self.player.hand:
 			print(card.suit, card.value)
 		print("Player's total value: ", self.player.value)
+		print("-------------------------------------------------")
 		# Print the dealer's hand and the total value
 		print("Dealer's hand: ")
 		for card in self.dealer.hand:
 			print(card.suit, card.value)
 		print("Dealer's total value: ", self.dealer.value)
-
+		print("-------------------------------------------------")
 		# Get the initial state of the game
 		state = self.get_state()
 
@@ -159,9 +171,12 @@ class BlackjackGame:
 		# Determine the reward for the chosen action
 		reward = self.reward(self.player, self.dealer, outcome)
 
-		# Update the Q-table using the BlackPlayer's update_q_table() method
+		# Choose the next action according to the Sarsa(λ) algorithm
 		next_state = self.get_state()  # Get the next state
-		self.player_ia.update_q_table(state, action, reward, next_state)
+		next_action = self.player_ia.choose_action(next_state)  # Choose the next action
+
+		# Update the Q-table using the BlackPlayer's update_q_table() method
+		self.player_ia.update_q_table(state, action, reward, next_state, next_action)
 
 		# While the dealer's value is less than 17, keep drawing unless the player has already busted and beat the
 		# player's value
@@ -203,15 +218,24 @@ class BlackjackGame:
 
 		if outcome == 'player busts':
 			print('Player busts!')
-
+			self.update_balance('lose')
 		elif outcome == 'dealer busts':
 			print('Dealer busts!')
+			self.update_balance('win')
 		elif outcome == 'player wins':
 			print('Player wins!')
+			self.update_balance('win')
 		elif outcome == 'dealer wins':
 			print('Dealer wins!')
+			self.update_balance('lose')
 		else:  # outcome == 'tie'
 			print('Tie!')
+
+		print('______________________________________________________')
+		print()
+		print('Your balance is ${}'.format(self.player.balance))
+		print()
+		print('______________________________________________________')
 
 
 if __name__ == '__main__':

@@ -31,24 +31,43 @@ class BlackPlayer:
 		self.epsilon = epsilon
 		self.state_to_idx = {state: i for i, state in enumerate(states)}
 		self.idx_to_state = {i: state for i, state in enumerate(states)}
+		self.q_table = np.zeros((num_states, num_actions))
 
 	def choose_action(self, state):
 		"""Choose an action according to the Sarsa(λ) algorithm."""
+		if state not in self.state_to_idx:
+			# If state is not a valid state, return None
+			return None
+
 		if random.random() < self.epsilon:
-			# Choose a random action
-			action = random.randint(0, self.num_actions - 1)
+			# Choose a random action with probability ε
+			action = random.choice(self.actions)
 		else:
-			# Choose the action that maximizes Q(s, a)
+			# Choose the action that maximizes Q(s, a) with probability 1 - ε
 			state_idx = self.state_to_idx[state]
-			action = np.argmax(self.q_table[state_idx])
-		return self.actions[action]  # Return the action string
+			action = self.actions[np.argmax(self.q_table[state_idx])]
+
+		# If the AI player has never taken action a in state s, initialize Q(s, a) to a random value
+		if self.q_table[self.state_to_idx[state], self.actions.index(action)] == 0:
+			self.q_table[self.state_to_idx[state], self.actions.index(action)] = random.uniform(-1, 1)
+
+		return action
 
 	def update_q_table(self, state, action, reward, next_state, next_action):
 		"""Update the Q-table using the Sarsa(λ) update rule."""
+		if state not in self.state_to_idx or next_state not in self.state_to_idx:
+			# If state or next_state is not a valid state, return None
+			return None
+
+		# Get the indices of the state and next_state in the Q-table
 		state_idx = self.state_to_idx[state]
-		action_idx = self.actions.index(action)  # Convert action string to index
 		next_state_idx = self.state_to_idx[next_state]
-		next_action_idx = self.actions.index(next_action)  # Convert action string to index
+
+		# Get the indices of the action and next_action in the Q-table
+		action_idx = self.actions.index(action)
+		next_action_idx = self.actions.index(next_action)
+
+		# Update the Q-table using the Sarsa(λ) update rule
 		self.q_table[state_idx, action_idx] = self.q_table[state_idx, action_idx] + self.alpha * (
 				reward + self.gamma * self.q_table[next_state_idx, next_action_idx] - self.q_table[state_idx, action_idx])
 
@@ -59,7 +78,3 @@ class BlackPlayer:
 	def load_q_table(self, filename):
 		"""Load the Q-table from a file."""
 		self.q_table = np.load(filename)
-
-
-
-
