@@ -35,23 +35,23 @@ class BlackPlayer:
 
 	def choose_action(self, state):
 		"""Choose an action according to the Sarsa(λ) algorithm."""
-		if state not in self.state_to_idx:
+		if state in self.state_to_idx:  # Check if state is a valid state
+			if random.random() < self.epsilon:
+				# Choose a random action with probability ε
+				action = random.choice(self.actions)
+			else:
+				# Choose the action that maximizes Q(s, a) with probability 1 - ε
+				state_idx = self.state_to_idx[state]
+				action = self.actions[np.argmax(self.q_table[state_idx])]
+
+			# If the AI player has never taken action a in state s, initialize Q(s, a) to a random value
+			if self.q_table[self.state_to_idx[state], self.actions.index(action)] == 0:
+				self.q_table[self.state_to_idx[state], self.actions.index(action)] = random.uniform(-1, 1)
+
+			return action
+		else:
 			# If state is not a valid state, return None
 			return None
-
-		if random.random() < self.epsilon:
-			# Choose a random action with probability ε
-			action = random.choice(self.actions)
-		else:
-			# Choose the action that maximizes Q(s, a) with probability 1 - ε
-			state_idx = self.state_to_idx[state]
-			action = self.actions[np.argmax(self.q_table[state_idx])]
-
-		# If the AI player has never taken action a in state s, initialize Q(s, a) to a random value
-		if self.q_table[self.state_to_idx[state], self.actions.index(action)] == 0:
-			self.q_table[self.state_to_idx[state], self.actions.index(action)] = random.uniform(-1, 1)
-
-		return action
 
 	def update_q_table(self, state, action, reward, next_state, next_action):
 		"""Update the Q-table using the Sarsa(λ) update rule."""

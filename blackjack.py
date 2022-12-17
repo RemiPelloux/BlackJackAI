@@ -15,8 +15,8 @@ class Card:
 class Deck:
 	def __init__(self):
 		self.cards = []
-		for suit in ['H', 'S', 'D', 'C']:
-			for value in range(1, 14):
+		for suit in ['H', 'S', 'D', 'C']:  # H=Hearts, S=Spades, D=Diamonds, C=Clubs
+			for value in range(1, 14):  # Card values range from 1 (Ace) to 13 (King)
 				self.cards.append(Card(suit, value))
 
 	def shuffle(self):
@@ -24,6 +24,12 @@ class Deck:
 
 	def draw(self):
 		return self.cards.pop()
+
+	def reset(self):
+		self.cards = []
+		for suit in ['H', 'S', 'D', 'C']:
+			for value in range(1, 14):
+				self.cards.append(Card(suit, value))
 
 
 class Player:
@@ -40,16 +46,29 @@ class Player:
 			self.balance = 1000
 
 	def draw(self, card):
-		self.hand.append(card)
-		self.value += card.value
 		if card.value == 1:
 			self.aces += 1
 		self.adjust_for_ace()
+		self.adjust_for_figures(card)
+		self.value += card.value
+		self.hand.append(card)
 
 	def adjust_for_ace(self):
+		# Return if the player has already busted
+		if self.value > 21:
+			return
 		while self.value > 21 and self.aces:
 			self.value -= 10
 			self.aces -= 1
+
+	def adjust_for_figures(self, card):
+		if card.value > 10:
+			card.value = 10
+
+	def reset(self):
+		self.hand = []
+		self.value = 0
+		self.aces = 0
 
 
 class BlackjackGame:
@@ -70,7 +89,7 @@ class BlackjackGame:
 		current_state = random.choice(states)  # Choose a random state
 		current_action = random.choice(self.actions)  # Choose a random action
 
-		self.player_ia = BlackPlayer.BlackPlayer(states=states, actions=self.actions, alpha=0.1, gamma=0.9, epsilon=0.1)
+		self.player_ia = BlackPlayer.BlackPlayer(states=states, actions=self.actions, alpha=0.8, gamma=0.4, epsilon=0.1)
 
 		self.deck = Deck()
 		self.deck.shuffle()
@@ -85,11 +104,18 @@ class BlackjackGame:
 		elif outcome == 'dealer busts':
 			return 1
 		elif outcome == 'player wins':
-			# Return a higher reward if the player's hand value is higher
-			return 1 + 0.1 * (player.value - dealer.value)
+			# Return a higher reward if the player's hand value is close to 21
+			return 1 + 0.1 * (player.value - dealer.value) + 0.5 * (21 - player.value)
 		elif outcome == 'dealer wins':
 			# Return a lower penalty if the dealer's hand value is higher
-			return -1 - 0.1 * (dealer.value - player.value)
+			return -1 - 0.1 * (dealer.value - player.value) - 0.5 * (dealer.value - 21)
+		elif outcome == 'player stands':
+			if player.value > dealer.value:
+				return 1 + 0.5 * (21 - player.value)
+			elif player.value == dealer.value:
+				return 0
+			else:
+				return -1 - 0.5 * (dealer.value - 21)
 		else:  # outcome == 'tie'
 			return 0
 
@@ -126,14 +152,21 @@ class BlackjackGame:
 		return player_value, dealer_value
 
 	def play(self):
+		# try to load q_table from file
+		try:
+			self.player_ia.load_q_table('q_table.npy')
+		except FileNotFoundError:
+			pass
+
 		self.bet = random.randint(10, 50)
-		print('______________________________________________________')
+		outcome = None
+		action = None
+
+		# Deal two cards to the player and the dealer
 		print()
-		print('Your balance is ${}'.format(self.player.balance))
-		print('Your bet is ${}'.format(self.bet))
-		print('______________________________________________________')
-		print('Dealing cards...')
-		print()
+		print('>/ New game')
+		print('> Your balance is ${}'.format(self.player.balance))
+		print('> Your bet is ${}'.format(self.bet))
 
 		self.player.draw(self.deck.draw())
 		self.player.draw(self.deck.draw())
@@ -141,32 +174,46 @@ class BlackjackGame:
 		self.dealer.draw(self.deck.draw())
 
 		# Print the player's hand and the total value
-		print("Player's hand: ")
+		print("> Player's hand: ")
 		for card in self.player.hand:
 			print(card.suit, card.value)
-		print("Player's total value: ", self.player.value)
-		print("-------------------------------------------------")
+		print("> Player's total value: ", self.player.value)
 		# Print the dealer's hand and the total value
-		print("Dealer's hand: ")
+		print("> Dealer's hand: ")
 		for card in self.dealer.hand:
 			print(card.suit, card.value)
-		print("Dealer's total value: ", self.dealer.value)
-		print("-------------------------------------------------")
+		print("> Dealer's total value: ", self.dealer.value)
 		# Get the initial state of the game
 		state = self.get_state()
 
-		while self.player.value < 21:
-			# Choose an action using the BlackPlayer's choose_action() method
-			action = self.player_ia.choose_action(state)
-			if action == self.HIT:
-				self.player.draw(self.deck.draw())
-				print('Player: {}'.format(self.player.value))
-				if self.player.value > 21:
-					# Player busts
-					outcome = 'player busts'
+		# if the player's hand value is 21, the player wins
+		if self.player.value == 21:
+			outcome = 'player wins'
+			self.update_balance('win')
+			print('> BLAAACKJACK Player wins!')
+			self.save_balance()
+			return outcome
+		else:
+			while self.player.value < 21:
+				# Choose an action using the BlackPlayer's choose_action() method
+				action = self.player_ia.choose_action(state)
+				if action == self.HIT:
+					self.player.draw(self.deck.draw())
+					print('> Player: {}'.format(self.player.value))
+					if self.player.value > 21:
+						# Player busts
+						outcome = 'player busts'
+						self.update_balance('lose')
+						print('> Player busts!')
+						self.save_balance()
+						# Determine the final reward for the game
+						reward = self.reward(self.player, self.dealer, outcome)
+						# Update the Q-table using the final reward and the current state
+						self.player_ia.update_q_table(state, action, reward, None, None)
+						return outcome
+				else:
+					outcome = 'player stands'
 					break
-			else:
-				break
 
 		# Determine the reward for the chosen action
 		reward = self.reward(self.player, self.dealer, outcome)
@@ -182,7 +229,7 @@ class BlackjackGame:
 		# player's value
 		while self.dealer.value < 17 and self.dealer.value < self.player.value:
 			self.dealer.draw(self.deck.draw())
-			print('Dealer: {}'.format(self.dealer.value))
+			print('> Dealer: {}'.format(self.dealer.value))
 
 		if self.dealer.value > 21:
 			# Dealer busts
@@ -203,42 +250,55 @@ class BlackjackGame:
 		reward = self.reward(self.player, self.dealer, outcome)
 
 		# Update the Q-table using the final reward and the current state
-		self.player_ia.update_q_table(state, action, reward, None)
+		self.player_ia.update_q_table(state, action, reward, None, None)
 
 		# Show the player's hand and the total value
-		print('Player\'s hand: ')
+		print('>> Player\'s hand: ')
 		for card in self.player.hand:
 			print(card.suit, card.value)
-		print('Player\'s total value: ', self.player.value)
+		print('>> Player\'s total value: ', self.player.value)
 		# Show the dealer's hand and the total value
-		print('Dealer\'s hand: ')
+		print()
+		print('>> Dealer\'s hand: ')
 		for card in self.dealer.hand:
 			print(card.suit, card.value)
-		print('Dealer\'s total value: ', self.dealer.value)
+		print('>> Dealer\'s total value: ', self.dealer.value)
 
 		if outcome == 'player busts':
-			print('Player busts!')
+			print('>> Player busts !')
 			self.update_balance('lose')
 		elif outcome == 'dealer busts':
-			print('Dealer busts!')
+			print('>> Dealer busts !')
 			self.update_balance('win')
 		elif outcome == 'player wins':
-			print('Player wins!')
+			print('>> Player wins !')
 			self.update_balance('win')
 		elif outcome == 'dealer wins':
-			print('Dealer wins!')
+			print('>> Dealer wins !')
 			self.update_balance('lose')
 		else:  # outcome == 'tie'
-			print('Tie!')
+			print('>> Tie !')
 
-		print('______________________________________________________')
+		self.save_balance()
 		print()
 		print('Your balance is ${}'.format(self.player.balance))
 		print()
-		print('______________________________________________________')
+		self.player_ia.save_q_table('q_table.npy')
+
+	def reset(self):
+		self.deck = Deck()
+		self.deck.shuffle()
+		self.player = Player()
+		self.dealer = Player()
 
 
 if __name__ == '__main__':
 	game = BlackjackGame()
 	game.load_balance()
-	game.play()
+	# play 100 games
+	for i in range(10000):
+		if game.player.balance < 10:
+			print('You are out of money!')
+			break
+		game.play()
+		game.reset()
