@@ -18,9 +18,14 @@ import random
 
 class BlackPlayer:
 	def __init__(self, states, actions, alpha, gamma, epsilon):
-		self.q_table = np.zeros((len(states), len(actions)))
-		self.num_actions = len(actions)
-		self.actions = actions  # Add this line
+		# Get the number of states and actions
+		num_states = len(states)
+		num_actions = len(actions)
+
+		# Initialize the Q-table to all zeros
+		self.q_table = np.zeros((num_states, num_actions))
+		self.num_actions = num_actions
+		self.actions = actions
 		self.alpha = alpha
 		self.gamma = gamma
 		self.epsilon = epsilon

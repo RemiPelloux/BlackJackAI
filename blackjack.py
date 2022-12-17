@@ -57,7 +57,14 @@ class BlackjackGame:
 		# Define the actions as integers
 		self.HIT = 0
 		self.STAND = 1
-		self.actions = [self.HIT, self.STAND]  # Create a list of actions
+		self.actions = [self.HIT, self.STAND]
+
+		# Define the possible hand values and visible cards
+		hand_values = range(4, 22)
+		visible_cards = range(1, 11)
+
+		# Create a list of states as tuples of hand values and visible cards
+		states = [(hand_value, visible_card) for hand_value in hand_values for visible_card in visible_cards]
 
 		self.player_ia = BlackPlayer.BlackPlayer(states=states, actions=self.actions, alpha=0.1, gamma=0.9, epsilon=0.1)
 
@@ -165,12 +172,15 @@ class BlackjackGame:
 		if self.dealer.value > 21:
 			# Dealer busts
 			outcome = 'dealer busts'
+			self.update_balance('win')
 		elif self.player.value > self.dealer.value:
 			# Player wins
 			outcome = 'player wins'
+			self.update_balance('win')
 		elif self.player.value < self.dealer.value:
 			# Dealer wins
 			outcome = 'dealer wins'
+			self.update_balance('lose')
 		else:  # Tie
 			outcome = 'tie'
 
@@ -193,6 +203,7 @@ class BlackjackGame:
 
 		if outcome == 'player busts':
 			print('Player busts!')
+
 		elif outcome == 'dealer busts':
 			print('Dealer busts!')
 		elif outcome == 'player wins':
