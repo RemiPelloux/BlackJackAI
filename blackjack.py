@@ -5,6 +5,17 @@ import BayesianOptimization
 # Import my ia
 import BlackPlayer
 
+outcomes = {
+	"player busts": 0,
+	"dealer busts": 0,
+	"player wins": 0,
+	"dealer wins": 0,
+	"player stands": 0,
+	"tie": 0,
+	"reward": 0
+}
+total_reward = 0.00
+
 
 class Card:
 	def __init__(self, suit, value):
@@ -100,9 +111,9 @@ class BlackjackGame:
 	def reward(self, player, dealer, outcome):
 		"""Determine the reward for a given game outcome."""
 		if outcome == 'player busts':
-			return -1
+			return -5 - 0.1 * (player.value - 21) - 0.01 * (dealer.value - 21)
 		elif outcome == 'dealer busts':
-			return 1
+			return 1 + 0.1 * (player.value - 21) + 0.01 * (dealer.value - 21)
 		elif outcome == 'player wins':
 			# Return a higher reward if the player's hand value is close to 21
 			return 1 + 0.1 * (player.value - dealer.value) + 0.5 * (21 - player.value)
@@ -111,7 +122,7 @@ class BlackjackGame:
 			return -1 - 0.1 * (dealer.value - player.value) - 0.5 * (dealer.value - 21)
 		elif outcome == 'player stands':
 			if player.value > dealer.value:
-				return 1 + 0.5 * (21 - player.value)
+				return 3 + 0.5 * (21 - player.value)
 			elif player.value == dealer.value:
 				return 0
 			else:
@@ -144,6 +155,25 @@ class BlackjackGame:
 		except FileNotFoundError:
 			self.save_balance(1000)
 
+	def update_outcome(self, outcome, reward):
+		"""Save the outcome and reward of the game."""
+		outcomes[outcome] += 1
+		global total_reward
+		outcomes['reward'] += reward
+
+	def save_outcome(self):
+		"""Save the outcomes to a json formatted file."""
+		with open('outcomes.json', 'w') as f:
+			json.dump(outcomes, f)
+
+	def load_outcome(self):
+		"""Load the outcome of the game from a json formatted file."""
+		try:
+			with open('outcome.json', 'r') as f:
+				return json.load(f)
+		except FileNotFoundError:
+			return None
+
 	def get_state(self):
 		"""Return the current state of the game, which includes the player's hand value, the dealer's hand value,
 		and the visible card of the dealer. """
@@ -158,7 +188,7 @@ class BlackjackGame:
 		except FileNotFoundError:
 			pass
 
-		self.bet = random.randint(10, 50)
+		self.bet = 1
 		outcome = None
 		action = None
 
@@ -180,9 +210,8 @@ class BlackjackGame:
 		print("> Player's total value: ", self.player.value)
 		# Print the dealer's hand and the total value
 		print("> Dealer's hand: ")
-		for card in self.dealer.hand:
-			print(card.suit, card.value)
-		print("> Dealer's total value: ", self.dealer.value)
+		print(self.dealer.hand[0].suit, self.dealer.hand[0].value)
+		print("> Dealer's total value: ", self.dealer.hand[0].value)
 		# Get the initial state of the game
 		state = self.get_state()
 
@@ -284,6 +313,7 @@ class BlackjackGame:
 		print('Your balance is ${}'.format(self.player.balance))
 		print()
 		self.player_ia.save_q_table('q_table.npy')
+		self.update_outcome(outcome, reward)
 
 	def reset(self):
 		self.deck = Deck()
@@ -302,3 +332,5 @@ if __name__ == '__main__':
 			break
 		game.play()
 		game.reset()
+	game.save_balance()
+	game.save_outcome()
