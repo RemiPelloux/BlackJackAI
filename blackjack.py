@@ -12,9 +12,11 @@ outcomes = {
 	"dealer wins": 0,
 	"player stands": 0,
 	"tie": 0,
-	"reward": 0
+	"reward": 0,
+	'total_games': 0
 }
 total_reward = 0.00
+total_games = 0
 
 
 class Card:
@@ -100,7 +102,7 @@ class BlackjackGame:
 		current_state = random.choice(states)  # Choose a random state
 		current_action = random.choice(self.actions)  # Choose a random action
 
-		self.player_ia = BlackPlayer.BlackPlayer(states=states, actions=self.actions, alpha=0.5, gamma=0.8, epsilon=0.3)
+		self.player_ia = BlackPlayer.BlackPlayer(states=states, actions=self.actions, alpha=0.3, gamma=0.8, epsilon=0.3)
 
 		self.deck = Deck()
 		self.deck.shuffle()
@@ -158,8 +160,11 @@ class BlackjackGame:
 	def update_outcome(self, outcome, reward):
 		"""Save the outcome and reward of the game."""
 		outcomes[outcome] += 1
-		global total_reward
 		outcomes['reward'] += reward
+		outcomes['total_games'] += 1
+
+	def update_player_stand(self):
+		outcomes['player stands'] += 1
 
 	def save_outcome(self):
 		"""Save the outcomes to a json formatted file."""
@@ -170,6 +175,7 @@ class BlackjackGame:
 		"""Load the outcome of the game from a json formatted file."""
 		try:
 			with open('outcome.json', 'r') as f:
+				print(json.load(f))
 				return json.load(f)
 		except FileNotFoundError:
 			return None
@@ -242,6 +248,7 @@ class BlackjackGame:
 						return outcome
 				else:
 					outcome = 'player stands'
+					self.update_player_stand()
 					break
 
 		# Determine the reward for the chosen action
@@ -250,6 +257,7 @@ class BlackjackGame:
 		# Choose the next action according to the Sarsa(λ) algorithm
 		next_state = self.get_state()  # Get the next state
 		next_action = self.player_ia.choose_action(next_state)  # Choose the next action
+
 
 		# Update the Q-table using the BlackPlayer's update_q_table() method
 		self.player_ia.update_q_table(state, action, reward, next_state, next_action)
@@ -326,11 +334,11 @@ if __name__ == '__main__':
 	game = BlackjackGame()
 	game.load_balance()
 	# play 100 games
-	for i in range(100):
+	for i in range(50000):
 		if game.player.balance < 10:
 			print('You are out of money!')
 			break
 		game.play()
 		game.reset()
-	game.save_balance()
 	game.save_outcome()
+	game.save_balance()
